@@ -12,3 +12,8 @@ You may also be able to run straight from the executable:
 ```
 ./Oneiro
 ```
+
+// check list
+
+
+// what i would do to make sure its production ready
