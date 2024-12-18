@@ -78,10 +78,13 @@ executable main
 
 test-suite tests
   main-is:             Tests.hs
+  other-modules:       LoanInterest
   type:                exitcode-stdio-1.0
-  hs-source-dirs:      src, tests
+  hs-source-dirs:      ./
+                       src
   build-depends:       base >=4.15,
                        QuickCheck >=2.14,
                        time,
                        loaninterest
+
   default-language:    Haskell2010

@@ -1,6 +1,8 @@
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 {-# HLINT ignore "Use camelCase" #-}
 {-# HLINT ignore "Use <&>" #-}
+{-# LANGUAGE DeriveAnyClass      #-}
+{-# LANGUAGE InstanceSigs        #-}
 {-# LANGUAGE NamedFieldPuns      #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
@@ -63,8 +65,8 @@ instance Show DailyInterest where
             ]
 
 -- Prompt the user for a date in the format YYYY-MM-DD with an optional lower-bound
-parseDate :: String -> Maybe Day -> IO Day
-parseDate prompt lower_bound = do
+promptDate :: String -> Maybe Day -> IO Day
+promptDate prompt lower_bound = do
     putStrLn prompt
     day_str :: Maybe Day <- getLine >>= pure . parseTimeM True defaultTimeLocale "%0Y-%-m-%-d"
     case (day_str, lower_bound) of
@@ -75,30 +77,33 @@ parseDate prompt lower_bound = do
             -> pure date
            | otherwise
             ->  do  putStrLn ("End date must follow the start date: " ++ show start_date)
-                    parseDate prompt lower_bound
+                    promptDate prompt lower_bound
         (Nothing, _)
-            -> putStrLn "Invalid date format" >> parseDate prompt lower_bound
+            -> putStrLn "Invalid date format" >> promptDate prompt lower_bound
 
 -- Prompt the user for a non-neg decimal (e.g. percentage or loan amount)
-parsePosFloat :: String -> IO Float
-parsePosFloat prompt = do
+promptPosFloat :: String -> IO Float
+promptPosFloat prompt = do
     putStrLn prompt
     dec_str :: Maybe Float <- getLine >>= (pure . readMaybe)
     case dec_str of
         Just dec | dec >= 0 -> pure dec
-        Just _              -> putStrLn "Number must be non-negative" >> parsePosFloat prompt
-        Nothing             -> putStrLn "Invalid number" >> parsePosFloat prompt
+        Just _              -> putStrLn "Number must be non-negative" >> promptPosFloat prompt
+        Nothing             -> putStrLn "Invalid number" >> promptPosFloat prompt
 
-parseLoanFieldIndex :: IO LoanField
-parseLoanFieldIndex = do
+promptLoanFieldIndex :: IO LoanField
+promptLoanFieldIndex
+ = do
     putStrLn $ "Enter the index of a field name to update:\n\t" ++  show indexedLoanFields
     n <- getLine >>= pure . readMaybe
     case n of
         Just idx
             -> if idx >= 0 && idx < length indexedLoanFields then pure (toEnum idx)
-               else putStrLn ("Index out of range: " ++ show idx) >> parseLoanFieldIndex
+               else putStrLn ("Index out of range: " ++ show idx) >> promptLoanFieldIndex
+
         Nothing
-            -> putStrLn "Couldn't parse index. " >> parseLoanFieldIndex
+            -> putStrLn "Couldn't parse index. " >> promptLoanFieldIndex
+
 
 roundToTwoDP :: Float -> Float
 roundToTwoDP x = (fromIntegral . round) (x * 100) / 100
@@ -107,22 +112,22 @@ roundToTwoDP x = (fromIntegral . round) (x * 100) / 100
 updateLoan :: Loan -> LoanField -> IO Loan
 updateLoan loan field  = case field of
     StartDate -> do
-        date <- parseDate "Enter start date in \"YYYY-MM-DD\" format (e.g., 1995-12-28)" Nothing
+        date <- promptDate "Enter start date in \"YYYY-MM-DD\" format (e.g., 1995-12-28)" Nothing
         pure loan { start = date }
     EndDate -> do
-        date <- parseDate "Enter end date in \"YYYY-MM-DD\" format (e.g., 2020-01-28)" (Just (start loan))
+        date <- promptDate "Enter end date in \"YYYY-MM-DD\" format (e.g., 2020-01-28)" (Just (start loan))
         pure loan { end = date }
     LoanAmount -> do
-        amt <- parsePosFloat "Enter loan amount in whole or decimal format (e.g., 15000, 70.00)" >>= pure . roundToTwoDP
+        amt <- promptPosFloat "Enter loan amount in whole or decimal format (e.g., 15000, 70.00)" >>= pure . roundToTwoDP
         pure loan { amount = amt}
     Currency -> do
         curr <- putStrLn "Enter currency (e.g., USD, GBP, EUR)" >> getLine
         pure loan { currency = curr }
     Base -> do
-        base_intr_rate <- parsePosFloat "Enter base interest rate (%) in whole or decimal format (e.g., 5, 2.5)"
+        base_intr_rate <- promptPosFloat "Enter base interest rate (%) in whole or decimal format (e.g., 5, 2.5)"
         pure loan { base_interest = base_intr_rate}
     Margin -> do
-        mrg <- parsePosFloat "Enter margin interest rate (%) in whole or decimal format (e.g., 5, 2.5)"
+        mrg <- promptPosFloat "Enter margin interest rate (%) in whole or decimal format (e.g., 5, 2.5)"
         pure loan { margin_interest = mrg}
 
 -- Prompt the user to enter each of the fields in a Loan
@@ -147,11 +152,12 @@ computeDailyInterest (Loan {start, end, amount, base_interest, margin_interest})
         | otherwise =
             day : days
 
+-- Print historical daily interest for a given loan, and prompt the user to update a loan field.
 loopUpdate :: Loan -> IO b
 loopUpdate loan = do
     mapM_ print (reverse $ computeDailyInterest loan)
     putStrLn   "-------------------------------------------------"
     putStrLn $ "\nCurrent loan information used:\n " ++ show loan
-    parseLoanFieldIndex
+    promptLoanFieldIndex
         >>= updateLoan loan
         >>= loopUpdate
