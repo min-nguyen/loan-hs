@@ -1,8 +1,3 @@
-{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
-{-# HLINT ignore "Use camelCase" #-}
-{-# HLINT ignore "Use <&>" #-}
-{-# LANGUAGE DeriveAnyClass      #-}
-{-# LANGUAGE InstanceSigs        #-}
 {-# LANGUAGE NamedFieldPuns      #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
@@ -14,10 +9,10 @@ import           Text.Read hiding (step)
 data Loan = Loan {
     start           :: Day,
     end             :: Day,
-    amount          :: Float,
+    amount          :: Double,
     currency        :: String,
-    base_interest   :: Float,
-    margin_interest :: Float
+    base_interest   :: Double,
+    margin_interest :: Double
 }
 
 defaultLoan :: Loan
@@ -46,11 +41,11 @@ instance Show Loan where
             ]
 
 data DailyInterest = Daily {
-    daily_base_interest  :: Float,
-    daily_total_interest :: Float,
+    daily_base_interest  :: Double,
+    daily_total_interest :: Double,
     date_accrued         :: Day,
     days_elapsed         :: Int,
-    total_interest       :: Float
+    total_interest       :: Double
 }
 
 instance Show DailyInterest where
@@ -82,18 +77,18 @@ promptDate prompt lower_bound = do
             -> putStrLn "Invalid date format" >> promptDate prompt lower_bound
 
 -- Prompt the user for a non-neg decimal (e.g. percentage or loan amount)
-promptPosFloat :: String -> IO Float
+promptPosFloat :: String -> IO Double
 promptPosFloat prompt = do
     putStrLn prompt
-    dec_str :: Maybe Float <- getLine >>= (pure . readMaybe)
+    dec_str :: Maybe Double <- getLine >>= (pure . readMaybe)
     case dec_str of
         Just dec | dec >= 0 -> pure dec
         Just _              -> putStrLn "Number must be non-negative" >> promptPosFloat prompt
         Nothing             -> putStrLn "Invalid number" >> promptPosFloat prompt
 
+-- Prompt the user for an index corresponding to a loan field.
 promptLoanFieldIndex :: IO LoanField
-promptLoanFieldIndex
- = do
+promptLoanFieldIndex = do
     putStrLn $ "Enter the index of a field name to update:\n\t" ++  show indexedLoanFields
     n <- getLine >>= pure . readMaybe
     case n of
@@ -104,8 +99,7 @@ promptLoanFieldIndex
         Nothing
             -> putStrLn "Couldn't parse index. " >> promptLoanFieldIndex
 
-
-roundToTwoDP :: Float -> Float
+roundToTwoDP :: Double -> Double
 roundToTwoDP x = (fromIntegral . round) (x * 100) / 100
 
 -- Update a single field in an existing Loan

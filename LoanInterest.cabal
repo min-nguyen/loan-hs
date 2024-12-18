@@ -68,19 +68,20 @@ executable main
 
     -- Other library packages from which modules are imported.
     build-depends:    base >= 4.15,
-                      time
+                      time,
+                      QuickCheck
     -- Directories containing source files.
-    hs-source-dirs:   ./
+    hs-source-dirs:   ./,
                       src
 
     -- Base language which the package is written in.
     default-language: Haskell2010
 
 test-suite tests
-  main-is:             Tests.hs
+  main-is:             Main.hs
   other-modules:       LoanInterest
   type:                exitcode-stdio-1.0
-  hs-source-dirs:      ./
+  hs-source-dirs:      tests,
                        src
   build-depends:       base >=4.15,
                        QuickCheck >=2.14,
